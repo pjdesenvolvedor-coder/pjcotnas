@@ -130,15 +130,6 @@ export function Header() {
                          </Button>
                       </SheetClose>
                     )}
-                     {isAdmin && (
-                      <SheetClose asChild>
-                         <Button variant="ghost" className="w-full justify-start text-base" asChild>
-                            <Link href="/admin">
-                              <Shield className="mr-2" /> Admin
-                            </Link>
-                         </Button>
-                      </SheetClose>
-                    )}
                   </>
                 ) : null }
               </nav>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -17,6 +18,12 @@ import {
   PackageCheck,
   Percent,
   Shield,
+  Users,
+  Ticket,
+  Settings,
+  MessageSquare,
+  ShoppingBag,
+  Gift,
 } from 'lucide-react';
 
 export function SellerSidebar() {
@@ -32,7 +39,7 @@ export function SellerSidebar() {
 
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserProfile>(userDocRef);
 
-  const menuItems = [
+  const sellerMenuItems = [
     {
       group: 'MENU VENDEDOR',
       items: [
@@ -50,16 +57,53 @@ export function SellerSidebar() {
       ],
     },
   ];
+  
+  const adminMenuItems = [
+    { href: '/seller/dashboard', label: 'Painel Admin', icon: Shield },
+    { href: '/seller/services', label: 'Serviços', icon: ShoppingBag },
+    { href: '/seller/users', label: 'Usuários', icon: Users },
+    { href: '/seller/coupons', label: 'Cupons', icon: Ticket },
+    { href: '/seller/special-coupons', label: 'Cupons Especiais', icon: Gift },
+    { href: '/seller/payments', label: 'Pagamentos', icon: Settings },
+    { href: '/seller/whatsapp', label: 'WhatsApp Conexão', icon: MessageSquare },
+    { href: '/seller/whatsapp-messages', label: 'WhatsApp Mensagens', icon: MessageSquare },
+  ];
 
   const isAdmin = !isUserLoading && !isUserDataLoading && userData?.role === 'admin';
 
   return (
     <aside className="hidden md:flex w-72 flex-shrink-0 bg-card border-r p-4 flex-col">
       <div className="mb-4 px-3">
-         <p className="text-sm text-muted-foreground">Início &gt; Painel</p>
+         <p className="text-sm text-muted-foreground">Painel do Vendedor</p>
       </div>
       <nav className="flex-grow">
-        {menuItems.map((group, groupIndex) => (
+        {isAdmin && (
+          <div className="mb-6">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
+              ADMINISTRAÇÃO
+            </h3>
+            <ul>
+              {adminMenuItems.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      pathname === item.href
+                        ? 'bg-secondary text-primary font-semibold'
+                        : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {sellerMenuItems.map((group, groupIndex) => (
           <div key={groupIndex} className="mb-6">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
               {group.group}
@@ -88,29 +132,6 @@ export function SellerSidebar() {
           </div>
         ))}
 
-        {isAdmin && (
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
-              ADMINISTRAÇÃO
-            </h3>
-            <ul>
-              <li>
-                <Link
-                  href="/admin"
-                  className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                    pathname.startsWith('/admin')
-                      ? 'bg-secondary text-primary font-semibold'
-                      : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
-                  )}
-                >
-                  <Shield className="h-4 w-4" />
-                  <span>Painel do Admin</span>
-                </Link>
-              </li>
-            </ul>
-          </div>
-        )}
       </nav>
       <div className="mt-auto">
         <Button

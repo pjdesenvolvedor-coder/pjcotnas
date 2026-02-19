@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { sendWelcomeWhatsAppMessage } from './actions';
+import { sendWelcomeWhatsAppMessage } from '../seller/actions';
 import type { WhatsappConfig, PendingMessage } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 

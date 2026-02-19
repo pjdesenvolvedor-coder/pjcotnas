@@ -140,6 +140,8 @@ export type Coupon = {
   discountPercentage: number;
   usageLimit?: number;
   usageCount?: number;
+  subscriptionId?: string;
+  subscriptionName?: string;
 };
 
 // Represents the central payment provider configuration.

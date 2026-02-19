@@ -26,12 +26,13 @@ export async function checkPixStatusAction(transactionId: string) {
 
 const ValidateCouponInputSchema = z.object({
   couponCode: z.string().min(1),
+  planId: z.string().min(1),
 });
 
-export async function validateCouponAction(couponCode: string): Promise<{ data: Coupon | null; error: string | null; }> {
-  const validatedInput = ValidateCouponInputSchema.safeParse({ couponCode });
+export async function validateCouponAction(couponCode: string, planId: string): Promise<{ data: Coupon | null; error: string | null; }> {
+  const validatedInput = ValidateCouponInputSchema.safeParse({ couponCode, planId });
   if (!validatedInput.success) {
-    return { data: null, error: 'Código de cupom inválido.' };
+    return { data: null, error: 'Código de cupom ou ID do plano inválido.' };
   }
 
   // Initialize Firebase Admin SDK for server-side operations
@@ -49,6 +50,10 @@ export async function validateCouponAction(couponCode: string): Promise<{ data: 
     }
 
     const couponData = couponSnap.data() as Coupon;
+
+    if (couponData.subscriptionId && couponData.subscriptionId !== validatedInput.data.planId) {
+      return { data: null, error: `Este cupom não é válido para este produto. É válido apenas para "${couponData.subscriptionName}".` };
+    }
 
     if (couponData.usageLimit && couponData.usageLimit > 0) {
       if ((couponData.usageCount || 0) >= couponData.usageLimit) {

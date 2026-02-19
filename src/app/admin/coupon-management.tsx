@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import type { Coupon } from '@/lib/types';
+import type { Coupon, Plan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,11 +16,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, PlusCircle, Trash, Ticket as CouponIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+
 
 const couponSchema = z.object({
   name: z.string().min(3, "O nome do cupom deve ter pelo menos 3 caracteres.").toUpperCase(),
   discountPercentage: z.coerce.number().min(1, "O desconto deve ser de no mínimo 1%.").max(100, "O desconto não pode exceder 100%."),
   usageLimit: z.coerce.number().int().min(0, "O limite de uso deve ser 0 ou maior.").default(0),
+  subscriptionId: z.string().optional(),
 });
 
 type CouponFormData = z.infer<typeof couponSchema>;
@@ -32,6 +36,9 @@ export function CouponManagement() {
 
   const couponsQuery = useMemoFirebase(() => collection(firestore, 'coupons'), [firestore]);
   const { data: coupons, isLoading } = useCollection<Coupon>(couponsQuery);
+  
+  const subscriptionsQuery = useMemoFirebase(() => collection(firestore, 'subscriptions'), [firestore]);
+  const { data: subscriptions, isLoading: isLoadingSubscriptions } = useCollection<Plan>(subscriptionsQuery);
 
   const form = useForm<CouponFormData>({
     resolver: zodResolver(couponSchema),
@@ -39,19 +46,35 @@ export function CouponManagement() {
       name: '',
       discountPercentage: 10,
       usageLimit: 0,
+      subscriptionId: 'none',
     },
   });
   const { formState, handleSubmit, reset } = form;
 
   const handleSave = (values: CouponFormData) => {
-    const newCouponRef = doc(firestore, 'coupons', values.name);
-    const newCouponData = { ...values, id: values.name, usageCount: 0 };
+    const { subscriptionId, ...restValues } = values;
+    const selectedSubscription = subscriptions?.find(s => s.id === subscriptionId);
 
-    // Use setDocumentNonBlocking instead of addDocument to handle cases where the doc might exist
-    setDocumentNonBlocking(newCouponRef, newCouponData, { merge: false });
+    const newCouponRef = doc(firestore, 'coupons', values.name);
+    
+    let couponData: Coupon = {
+        ...restValues,
+        id: values.name,
+        name: values.name,
+        usageCount: 0,
+        discountPercentage: values.discountPercentage,
+        usageLimit: values.usageLimit,
+    };
+    
+    if (subscriptionId && subscriptionId !== 'none' && selectedSubscription) {
+        couponData.subscriptionId = subscriptionId;
+        couponData.subscriptionName = selectedSubscription.name;
+    }
+
+    setDocumentNonBlocking(newCouponRef, couponData, { merge: false });
     toast({
       title: 'Cupom Criado!',
-      description: `O cupom "${values.name}" foi criado com ${values.discountPercentage}% de desconto.`,
+      description: `O cupom "${values.name}" foi criado com sucesso.`,
     });
     reset();
   };
@@ -133,6 +156,32 @@ export function CouponManagement() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="subscriptionId"
+                  render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Produto Específico (Opcional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingSubscriptions}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione um produto..." />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="none">Global (todos os produtos)</SelectItem>
+                                {subscriptions?.map((sub) => (
+                                    <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Selecione um produto para restringir o uso deste cupom.
+                        </FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <Button type="submit" disabled={formState.isSubmitting} className="w-full">
                   {formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                   Criar Cupom
@@ -158,6 +207,7 @@ export function CouponManagement() {
                   <TableRow>
                     <TableHead>Código</TableHead>
                     <TableHead>Desconto</TableHead>
+                    <TableHead>Produto</TableHead>
                     <TableHead>Usos</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -167,6 +217,13 @@ export function CouponManagement() {
                     <TableRow key={coupon.id}>
                       <TableCell className="font-medium flex items-center gap-2"><CouponIcon className="h-4 w-4 text-primary" /> {coupon.name}</TableCell>
                       <TableCell>{coupon.discountPercentage}%</TableCell>
+                       <TableCell>
+                        {coupon.subscriptionName ? (
+                          <Badge variant="secondary">{coupon.subscriptionName}</Badge>
+                        ) : (
+                          <Badge variant="outline">Global</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {coupon.usageLimit && coupon.usageLimit > 0
                           ? `${coupon.usageCount || 0} / ${coupon.usageLimit}`

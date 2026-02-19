@@ -389,6 +389,14 @@
         "usageCount": {
           "type": "number",
           "description": "The number of times this coupon has been used."
+        },
+        "subscriptionId": {
+          "type": "string",
+          "description": "Optional. If present, the coupon is only valid for this specific subscription."
+        },
+        "subscriptionName": {
+          "type": "string",
+          "description": "Optional. Denormalized name of the subscription for display purposes."
         }
       },
       "required": [

@@ -105,11 +105,11 @@ function CheckoutForm() {
 
   const handleApplyCoupon = useCallback(async (codeToApply?: string) => {
     const effectiveCouponCode = (codeToApply || couponCode).trim();
-    if (!effectiveCouponCode || !plan) return;
+    if (!effectiveCouponCode || !plan || !planId) return;
     
     setIsApplyingCoupon(true);
     setCouponError(null);
-    const result = await validateCouponAction(effectiveCouponCode);
+    const result = await validateCouponAction(effectiveCouponCode, planId);
     if (result.error) {
         setCouponError(result.error);
         setAppliedCoupon(null);
@@ -121,7 +121,7 @@ function CheckoutForm() {
         toast({ title: "Cupom aplicado com sucesso!" });
     }
     setIsApplyingCoupon(false);
-  }, [couponCode, plan, toast]);
+  }, [couponCode, plan, planId, toast]);
   
   // Pre-apply coupon from abandoned cart flow
   useEffect(() => {

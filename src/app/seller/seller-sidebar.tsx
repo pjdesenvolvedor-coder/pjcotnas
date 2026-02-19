@@ -5,7 +5,9 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import type { UserProfile } from '@/lib/types';
+import { doc } from 'firebase/firestore';
 import {
   Store,
   CreditCard,
@@ -14,12 +16,22 @@ import {
   LifeBuoy,
   PackageCheck,
   Percent,
+  Shield,
 } from 'lucide-react';
 
 export function SellerSidebar() {
   const pathname = usePathname();
   const auth = useAuth();
-  
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserProfile>(userDocRef);
+
   const menuItems = [
     {
       group: 'MENU VENDEDOR',
@@ -38,6 +50,8 @@ export function SellerSidebar() {
       ],
     },
   ];
+
+  const isAdmin = !isUserLoading && !isUserDataLoading && userData?.role === 'admin';
 
   return (
     <aside className="hidden md:flex w-72 flex-shrink-0 bg-card border-r p-4 flex-col">
@@ -73,6 +87,30 @@ export function SellerSidebar() {
             </ul>
           </div>
         ))}
+
+        {isAdmin && (
+          <div className="mb-6">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
+              ADMINISTRAÇÃO
+            </h3>
+            <ul>
+              <li>
+                <Link
+                  href="/admin"
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    pathname.startsWith('/admin')
+                      ? 'bg-secondary text-primary font-semibold'
+                      : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  <span>Painel do Admin</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
       </nav>
       <div className="mt-auto">
         <Button
